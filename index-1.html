@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1B3A5C">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Butlin's Planner">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Personalised Butlin's Bognor Regis holiday planner — sensory-friendly itinerary for families.">
+<title>Butlin's Bognor · Holiday Planner</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--navy:#1B3A5C;--red:#C8321A;--bg:#F2F0EB;--card:#fff;--border:#E2DDD6;--green:#1E8C5C;--green-bg:#E8F7EF;--amber:#C47C10;--amber-bg:#FEF3DC;--text:#1A1A1A;--muted:#5C6370;--light:#A0A7B0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100vh}
+#hd{background:var(--navy);color:#fff;padding:11px 10px 8px;position:sticky;top:0;z-index:100}
+#hd .stripe{position:absolute;top:0;left:0;right:0;height:4px;background:repeating-linear-gradient(90deg,var(--red) 0,var(--red) 12px,#fff 12px,#fff 24px)}
+#hd .title{font-size:15px;font-weight:800}
+#hd .sub{font-size:11px;opacity:.65;margin-top:1px}
+#hd .wg-cell{background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.2);color:#fff}
+#hd .wg-cell.on{background:rgba(255,255,255,0.25);border-color:rgba(255,255,255,0.6)}
+#hd .wg-d{color:#fff}
+#hd .wg-dt{color:rgba(255,255,255,0.65)}
+#hd .wg-n{font-weight:700}
+#hd .wg-row{color:rgba(255,255,255,0.75)}
+#hd .wg-free{color:rgba(255,255,255,0.45)}
+#hd .wg-more{color:rgba(255,255,255,0.45)}
+#mn{padding:0 0 80px}
+#nv{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--border);z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nb{flex:1;padding:9px 4px 7px;text-align:center;font-size:10px;font-weight:700;color:var(--light);cursor:pointer;border:none;background:none;text-transform:uppercase;letter-spacing:.3px}
+.nb.on{color:var(--navy)}
+.nb .ic{font-size:18px;display:block;margin-bottom:1px}
+.nv-row{display:flex}
+.undo-bar{background:#1e293b;color:#fff;padding:6px 12px;display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700}
+.undo-btn{color:#93c5fd;background:none;border:none;cursor:pointer;font-size:12px;font-weight:700}
+/* Week grid */
+.wg{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.wg-cell{background:var(--card);border-radius:9px;border:1.5px solid var(--border);padding:7px 8px;cursor:pointer;min-height:62px}
+.wg-cell.on{border-color:var(--navy);background:#eef2ff}
+.wg-cell.fri{min-height:auto;display:flex;align-items:center;gap:6px;padding:5px 8px;grid-column:1/-1}
+.wg-hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1px}
+.wg-d{font-size:12px;font-weight:800}
+.wg-dt{font-size:10px;color:var(--muted)}
+.wg-n{font-size:10px;font-weight:700;margin-bottom:2px}
+.wg-items{display:flex;flex-direction:column;gap:1px}
+.wg-row{display:flex;align-items:center;gap:3px;font-size:10px;color:var(--muted);overflow:hidden;white-space:nowrap}
+.wg-dot{width:5px;height:5px;border-radius:3px;flex-shrink:0;display:inline-block}
+.wg-more{font-size:9px;color:var(--light);margin-top:1px}
+.wg-free{font-size:10px;color:var(--light);font-style:italic}
+@keyframes wg-flash{0%{border-color:#3b82f6;background:#dbeafe}100%{border-color:var(--border);background:var(--card)}}
+.wg-cell.on.flash,
+.wg-cell.flash{animation:wg-flash .6s ease-out}
+/* Plan view */
+.now-next{background:#0f2040;color:#fff;padding:8px 12px;font-size:12px}
+.nn-label{font-size:10px;opacity:.6;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.nn-name{font-size:14px;font-weight:800;margin:1px 0}
+.nn-next{font-size:11px;opacity:.75}
+.warn-btn{display:block;width:calc(100% - 16px);margin:5px 8px 2px;padding:6px 10px;border-radius:8px;border:1px solid #fde68a;background:var(--amber-bg);color:#92400e;font-size:12px;font-weight:700;cursor:pointer;text-align:left}
+.warn-item{margin:2px 8px;padding:5px 9px;border-radius:7px;background:#fff;border:1px solid var(--border);font-size:11px;color:var(--muted)}
+.day-hd{background:var(--navy);color:#fff;padding:7px 12px;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700;margin:6px 8px 0;border-radius:8px 8px 0 0}
+.day-hd .pace{font-size:11px;opacity:.75;font-weight:500}
+.tl{margin:0 8px;background:var(--card);border-radius:0 0 8px 8px;overflow:hidden;border:1px solid var(--border);border-top:none;margin-bottom:6px}
+.tl-row{display:flex;align-items:flex-start;padding:6px 10px;border-bottom:1px solid #f4f2ef;cursor:pointer}
+.tl-row:last-child{border-bottom:none}
+.tl-row.done .tl-name{text-decoration:line-through;opacity:.5}
+.tl-row.admin{opacity:.65}
+.tl-time{width:36px;font-size:11px;font-weight:700;color:var(--light);flex-shrink:0;padding-top:2px;font-variant-numeric:tabular-nums}
+.tl-bar{width:3px;min-height:18px;align-self:stretch;border-radius:2px;flex-shrink:0;margin:2px 7px 0 0}
+.tl-body{flex:1;min-width:0}
+.tl-name{font-size:13px;font-weight:700;line-height:1.3}
+.tl-meta{font-size:11px;color:var(--muted)}
+.tl-exp{margin-top:5px;padding-top:5px;border-top:1px solid #f0ede8}
+.tl-note{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:3px}
+.tl-bed{font-size:10px;color:#a78bfa;font-weight:600;margin-top:2px}
+.tl-done-btn{margin-top:5px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--muted);cursor:pointer}
+.tl-done-btn.done{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+.walk-sep{display:flex;align-items:center;gap:4px;padding:2px 10px 2px 46px;font-size:10px;font-weight:700;color:var(--amber);opacity:.85}
+.walk-line{flex:1;height:1px;background:var(--amber);opacity:.3}
+.rosie-btn{display:block;width:calc(100% - 16px);margin:0 8px 6px;padding:7px 10px;border-radius:8px;border:1px dashed #c084fc;background:#fdf4ff;color:#7c3aed;font-size:12px;font-weight:700;cursor:pointer;text-align:left}
+.rosie-box{margin:0 8px 6px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;padding:10px;font-size:14px;line-height:1.8;color:#4a1d96}
+.rosie-lbl{font-size:10px;font-weight:700;color:#7c3aed;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+/* Add view */
+.settings-bar{padding:9px 12px;background:#fff;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700}
+.settings-bar .sm{font-size:11px;color:var(--muted);font-weight:500}
+.settings-panel{padding:9px 12px;background:#fff;border-bottom:1px solid var(--border)}
+.sg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:7px}
+.sg2{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:7px}
+.fl label{font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:2px}
+.fl select{width:100%;border:1px solid var(--border);border-radius:7px;padding:5px 6px;font-size:12px;background:#fff;color:var(--text)}
+.nap-row{display:flex;gap:4px;margin-bottom:7px}
+.nap-btn{flex:1;padding:5px 2px;border-radius:7px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:700;color:var(--light);cursor:pointer;text-align:center}
+.nap-btn.on{background:#dbeafe;border-color:#3b82f6;color:#1d4ed8}
+.sen-btn{width:100%;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;text-align:left;cursor:pointer;border:2px solid var(--border);background:#fff;color:var(--light)}
+.sen-btn.on{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+.sen-note{font-size:11px;color:var(--muted);margin-top:3px;padding-left:4px;line-height:1.5}
+.cat-pills{display:flex;gap:4px;padding:7px 8px 3px;overflow-x:auto;scrollbar-width:none}
+.cat-pill{flex-shrink:0;padding:4px 11px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer}
+.cat-pill.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.sec-hd{padding:8px 10px 3px;font-size:10px;font-weight:800;color:var(--light);text-transform:uppercase;letter-spacing:.6px}
+.ic{margin:0 8px 4px;border-radius:9px;border:1.5px solid var(--border);background:var(--card);overflow:hidden}
+.ic.sel{border-color:#3b82f6}
+.ic.dim{opacity:.35}
+.ic-main{display:flex;align-items:center;gap:7px;padding:8px 9px;cursor:pointer}
+.ic-dot{width:7px;height:7px;border-radius:4px;flex-shrink:0}
+.ic-label{flex:1;font-size:13px;font-weight:700;line-height:1.3}
+.ic-sub{font-size:11px;color:var(--muted)}
+.ic-actions{display:flex;gap:5px;align-items:center}
+.ic-exp-btn{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 4px}
+.ic-cb{width:21px;height:21px;border-radius:11px;border:2px solid #cbd5e1;background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.ic-cb.on{background:#3b82f6;border-color:#3b82f6;color:#fff}
+.ic-desc{padding:0 9px 7px 23px;font-size:12px;color:var(--muted);line-height:1.55;border-top:1px solid #f5f3ef}
+.slots{padding:6px 9px 7px;border-top:1px solid var(--border);background:#fafaf8}
+.slots-hd{display:flex;justify-content:space-between;margin-bottom:4px;font-size:11px;font-weight:700;color:var(--muted)}
+.slots-all{color:#3b82f6;background:none;border:none;cursor:pointer;font-size:11px;font-weight:700}
+.slot-btns{display:flex;flex-wrap:wrap;gap:3px}
+.sb{font-size:11px;font-weight:600;padding:4px 9px;border-radius:7px;border:1.5px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;text-align:center;min-width:72px}
+.sb.on{background:#dbeafe;border-color:#3b82f6;color:#1d4ed8}
+.sb.clash{border-color:#fca5a5}
+.sb.tight{border-color:#fbbf24}
+.sb-st{display:block;font-size:9px;font-weight:700}
+.sb-st.ok{color:var(--green)}.sb-st.clash{color:#ef4444}.sb-st.tight{color:#d97706}
+.sc-card{margin:0 8px 5px;border-radius:10px;padding:9px 11px;cursor:pointer}
+.sel-bar{display:flex;justify-content:space-between;align-items:center;padding:3px 10px 1px}
+.sel-bar span{font-size:12px;color:var(--muted)}
+.clear-btn{font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px}
+/* Prep view */
+.prep{padding:10px}
+.prep-hd{font-size:14px;font-weight:700;margin:6px 0 5px}
+.book-list{background:var(--card);border-radius:9px;border:1px solid var(--border);overflow:hidden;margin-bottom:10px}
+.book-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid #f5f3ef;gap:6px}
+.book-row:last-child{border-bottom:none}
+.book-name{font-size:13px;font-weight:700}
+.book-num{color:var(--light);margin-right:3px}
+.book-when{font-size:11px;color:var(--muted);margin-top:1px}
+.book-cost{font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;flex-shrink:0}
+.cost-free{background:var(--green-bg);color:var(--green)}
+.cost-tok{background:var(--amber-bg);color:var(--amber)}
+.tok-box{background:#f8f6f2;border-radius:9px;padding:9px;margin-bottom:10px;border:1px solid var(--border)}
+.tok-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:1px 0}
+.tok-total{display:flex;justify-content:space-between;font-size:13px;font-weight:700;border-top:1px solid var(--border);padding-top:5px;margin-top:3px}
+.tier-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px}
+.tier-tbl th{text-align:left;padding:4px 7px;font-size:10px;font-weight:700;color:var(--muted);border-bottom:1.5px solid var(--border)}
+.tier-tbl td{padding:4px 7px;border-bottom:1px solid #f5f3ef}
+.tier-tbl tr.cur td{background:#dbeafe;font-weight:700;color:#1d4ed8}
+.cl-item{display:flex;gap:6px;margin-bottom:4px;font-size:13px;color:#475569;line-height:1.5}
+.cl-box{color:var(--light);flex-shrink:0}
+.footer-tok{text-align:center;padding:4px 0 2px;font-size:12px;font-weight:700;color:var(--amber);background:#fff}
+.copy-toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:7px 16px;border-radius:20px;font-size:12px;font-weight:700;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none}
+.copy-toast.show{opacity:1}
+
+.cl-item{cursor:pointer;align-items:flex-start}
+.cl-item.checked{opacity:.5}
+.cl-item.checked span:last-child{text-decoration:line-through}
+.cl-check{width:18px;height:18px;border-radius:5px;border:2px solid #cbd5e1;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;margin-top:1px}
+.cl-check.on{background:var(--green);border-color:var(--green)}
+.guide-card{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:12px;margin:0 10px 10px}
+.guide-card h3{font-size:14px;font-weight:800;margin-bottom:7px;color:var(--navy);display:flex;align-items:center;gap:6px}
+.guide-card p{font-size:13px;line-height:1.6;color:#374151;margin-bottom:6px}
+.guide-card p:last-child{margin-bottom:0}
+.guide-card .label{font-weight:700;color:var(--navy)}
+.zone-map{display:flex;flex-direction:column;gap:5px;margin-top:6px}
+.zone-row{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 8px;border-radius:7px;background:#fafaf8;border:1px solid var(--border)}
+.zone-pin{width:12px;height:12px;border-radius:6px;flex-shrink:0}
+.zone-name{font-weight:700;flex:1}
+.zone-walk{font-size:11px;color:var(--muted)}
+.sos-card{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px;margin:0 10px 10px}
+.sos-card h3{color:#991b1b;font-size:14px;font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.sos-card p{font-size:13px;line-height:1.6;color:#7f1d1d;margin-bottom:5px}
+.day-note-btn{display:block;width:calc(100% - 16px);margin:0 8px 6px;padding:7px 10px;border-radius:8px;border:1px dashed #cbd5e1;background:#fff;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;text-align:left}
+.day-note-box{margin:0 8px 6px}
+.day-note-box textarea{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px;font-size:13px;font-family:inherit;resize:vertical;min-height:54px;color:var(--text)}
+.weather-strip{display:flex;gap:6px;margin:6px 10px 10px;overflow-x:auto;scrollbar-width:none}
+.wx-day{flex:1;min-width:62px;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:7px 4px;text-align:center}
+.wx-d{font-size:11px;font-weight:700;color:var(--muted)}
+.wx-ic{font-size:20px;margin:2px 0}
+.wx-t{font-size:12px;font-weight:700}
+</style>
+</head>
+<body>
+<div id="root">
+  <div id="hd">
+    <div class="stripe"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><div class="title">Butlin's Bognor Regis</div><div class="sub">Rob, Becky & Rosie · 15–19 June 2026</div></div>
+      <button data-action="copy" style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;flex-shrink:0">⧉ Share</button>
+    </div>
+    <div id="gd" style="margin-top:6px"></div>
+  </div>
+  <div id="mn"></div>
+  <div id="nv"></div>
+  <div id="copy-toast" class="copy-toast">Copied to clipboard</div>
+</div>
+<script>
+// ═══ CONSTANTS ═══
+const toM=t=>{const[h,m]=t.split(':').map(Number);return h*60+m;};
+const toT=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const DAYS=['mon','tue','wed','thu','fri'];
+const DL={mon:'Monday',tue:'Tuesday',wed:'Wednesday',thu:'Thursday',fri:'Friday'};
+const DD={mon:'15 Jun',tue:'16 Jun',wed:'17 Jun',thu:'18 Jun',fri:'19 Jun'};
+const ZN={pav:'Pavilion',splash:'Splash',north:'North',pot:'Pottery',playxp:'PLAYXPERIENCE',studio:'Studio 36'};
+const ZONES={'Centre Stage':'pav','Skyline Stage':'pav','Puppet Castle':'pav','Skyline Gang Soft Play':'pav','Splash — Tots Pool':'splash','Bullseye Bay':'north','Activity Gardens':'north','Pottery Studio':'pot','PLAYXPERIENCE':'playxp','Studio 36':'studio','Hotshots':'playxp','Skyline Pavilion':'pav','Adventure Golf':'outdoor','Bowling':'pav'};
+const WK={'north-pav':8,'north-pot':10,'north-splash':10,'pav-pot':5,'pav-playxp':3,'pav-splash':2,'pav-studio':7,'playxp-splash':4,'pot-splash':7};
+function wt(v1,v2){const z1=ZONES[v1]||'pav',z2=ZONES[v2]||'pav';if(z1===z2)return 0;return WK[[z1,z2].sort().join('-')]||5;}
+const EVE={mon:['Skyline Welcome Party 19:00','Centre Stage 19:30','Night at Reds'],tue:["Night at Reds","Acoustic Session 21:00"],wed:['World Cup Fixtures 20:30','Centre Stage 19:30','Night at Reds'],thu:['Mad for It 21:00','Acoustic Session 21:00','Night at Reds']};
+const MEALS={pav:['Costa','Burger King','Fish & Chips'],north:['Firehouse Grill','Beachcomber Inn'],splash:['PLAYXPERIENCE Cafe']};
+function tCol(type){return{anchor:'#2563eb',show:'#7c3aed',free:'#22c55e',admin:'#d1d5db',evening:'#f59e0b'}[type]||'#d1d5db';}
+
+const ITEMS=[
+  // BOOKABLE ACTIVITIES
+  {id:'qsp',g:'Activities',name:'Quiet Hour Soft Play',v:'Skyline Gang Soft Play',dur:60,sen:'safe',cost:'Free',tk:0,pp:false,bk:true,ages:'Under 5s',pri:1,multi:false,
+   desc:'Music off, lights dimmed, capped 50 kids. Tuesday 8am only. Book first — fills fastest of everything on resort.',
+   slots:[{day:'tue',s:'08:00',e:'09:00',l:'Tue 08:00'}]},
+  {id:'minibow',g:'Activities',name:'Mini Bow (2–4yrs)',v:'Bullseye Bay',dur:30,sen:'safe',cost:'Free',tk:0,pp:false,bk:true,ages:'2–4',pri:4,multi:false,
+   desc:'Foam arrows, coach one-on-one, parent alongside. Outdoor, quiet, genuinely fun. 5–8 min walk north of Pavilion.',
+   slots:[{day:'tue',s:'10:00',e:'10:30',l:'Tue 10:00'},{day:'tue',s:'10:30',e:'11:00',l:'Tue 10:30'},{day:'wed',s:'10:00',e:'10:30',l:'Wed 10:00'},{day:'wed',s:'10:30',e:'11:00',l:'Wed 10:30'}]},
+  {id:'totsfootball',g:'Activities',name:'Tots Fun Football (2–4yrs)',v:'Activity Gardens',dur:30,sen:'safe',cost:'Free',tk:0,pp:false,bk:true,ages:'2–4',pri:5,multi:false,
+   desc:'Gentle football for toddlers. Outdoor at Activity Gardens, next to Bullseye Bay — can do back-to-back with Mini Bow.',
+   slots:[{day:'tue',s:'10:00',e:'10:30',l:'Tue 10:00'},{day:'tue',s:'10:30',e:'11:00',l:'Tue 10:30'},{day:'tue',s:'11:00',e:'11:30',l:'Tue 11:00'},{day:'tue',s:'11:30',e:'12:00',l:'Tue 11:30'},{day:'wed',s:'14:00',e:'14:30',l:'Wed 14:00'},{day:'wed',s:'14:30',e:'15:00',l:'Wed 14:30'},{day:'wed',s:'15:00',e:'15:30',l:'Wed 15:00'}]},
+  {id:'pottery',g:'Activities',name:'Pottery Painting (family)',v:'Pottery Studio',dur:60,sen:'safe',cost:'1 token/person',tk:1,pp:true,bk:true,ages:'All',pri:3,multi:false,
+   desc:'Paint your own keepsake. Calm, seated, parallel play. All three paint together. Pottery team praised for being exceptional with SEN children.',
+   slots:[{day:'tue',s:'10:00',e:'11:00',l:'Tue 10:00'},{day:'tue',s:'11:30',e:'12:30',l:'Tue 11:30'},{day:'tue',s:'14:00',e:'15:00',l:'Tue 14:00'},{day:'tue',s:'15:30',e:'16:30',l:'Tue 15:30'},{day:'wed',s:'10:00',e:'11:00',l:'Wed 10:00'},{day:'wed',s:'11:30',e:'12:30',l:'Wed 11:30'},{day:'wed',s:'14:00',e:'15:00',l:'Wed 14:00'},{day:'wed',s:'15:30',e:'16:30',l:'Wed 15:30'}]},
+  {id:'balance',g:'Activities',name:'Balanceability',v:'Activity Gardens',dur:30,sen:'safe',cost:'1 token',tk:1,pp:false,bk:true,ages:'2.5–6',pri:4,multi:false,
+   desc:'Balance bike taster. Coach-led, outdoor. Certificate at end. Bring own helmet if she has a favourite.',
+   slots:[{day:'wed',s:'10:00',e:'10:30',l:'Wed 10:00'},{day:'wed',s:'10:45',e:'11:15',l:'Wed 10:45'},{day:'wed',s:'11:30',e:'12:00',l:'Wed 11:30'},{day:'thu',s:'10:00',e:'10:30',l:'Thu 10:00'},{day:'thu',s:'10:45',e:'11:15',l:'Thu 10:45'},{day:'thu',s:'11:30',e:'12:00',l:'Thu 11:30'}]},
+  {id:'advgolf',g:'Activities',name:'Adventure Golf',v:'Adventure Golf',dur:45,sen:'safe',cost:'Extra on day',tk:0,pp:false,bk:false,ages:'3+',pri:7,multi:false,
+   desc:'Outdoor traditional mini golf. No pre-booking needed — just show up and pay on the day. Good for all three of you. Rosie can wander between shots.',
+   slots:[{day:'mon',s:'14:30',e:'15:15',l:'Mon afternoon'},{day:'tue',s:'14:00',e:'14:45',l:'Tue afternoon'},{day:'wed',s:'14:00',e:'14:45',l:'Wed afternoon'},{day:'thu',s:'14:00',e:'14:45',l:'Thu afternoon'}]},
+  {id:'bowling',g:'Activities',name:'Ten-Pin Bowling',v:'Bowling',dur:60,sen:'care',cost:'Extra on day',tk:0,pp:false,bk:false,ages:'All',pri:7,multi:false,
+   desc:'Family activity — Rosie can use the kiddie ramp and bumpers. Only 10 lanes: book on arrival Monday before doing anything else.',
+   slots:[{day:'mon',s:'15:00',e:'16:00',l:'Mon'},{day:'tue',s:'10:00',e:'11:00',l:'Tue'},{day:'wed',s:'10:00',e:'11:00',l:'Wed'},{day:'thu',s:'10:00',e:'11:00',l:'Thu'}]},
+  {id:'tshirt',g:'Activities',name:'T-Shirt Design',v:'Pottery Studio',dur:60,sen:'safe',cost:'2 tokens/person',tk:2,pp:true,bk:true,ages:'All',pri:8,multi:false,
+   desc:'Paint a t-shirt. Dried paint texture may bother sensory kids.',
+   slots:[{day:'thu',s:'10:00',e:'11:00',l:'Thu 10:00'}]},
+  {id:'techputt',g:'Activities',name:'TechPutt (indoor mini golf)',v:'PLAYXPERIENCE',dur:30,sen:'care',cost:'1 token/person',tk:1,pp:true,bk:true,ages:'All',pri:8,multi:false,
+   desc:'3 x 9-hole indoor courses: Vegas, Music, Neon. Scores auto-detected. Avoid the Neon course for Rosie — dark with UV lights. Ask for Vegas or Music.',
+   slots:[{day:'tue',s:'14:00',e:'14:30',l:'Tue'},{day:'wed',s:'14:00',e:'14:30',l:'Wed'},{day:'thu',s:'14:00',e:'14:30',l:'Thu'}]},
+  {id:'shuffle',g:'Activities',name:'Shuffleboard',v:'PLAYXPERIENCE',dur:30,sen:'care',cost:'2 tokens/board',tk:2,pp:false,bk:true,ages:'All',pri:8,multi:false,
+   desc:'Family table game. Quieter than other PLAYXPERIENCE activities. Up to 8 players per board.',
+   slots:[{day:'tue',s:'14:00',e:'14:30',l:'Tue'},{day:'wed',s:'14:00',e:'14:30',l:'Wed'},{day:'thu',s:'14:00',e:'14:30',l:'Thu'}]},
+  {id:'karaoke',g:'Activities',name:'Karaoke Pod (private)',v:'Hotshots',dur:60,sen:'care',cost:'4 tokens/pod',tk:4,pp:false,bk:true,ages:'All',pri:8,multi:false,
+   desc:'Private pod — just your family. May suit selective mutism as there\'s no audience.',
+   slots:[{day:'tue',s:'14:00',e:'15:00',l:'Tue'},{day:'wed',s:'14:00',e:'15:00',l:'Wed'},{day:'thu',s:'10:00',e:'11:00',l:'Thu'}]},
+  // BOOKABLE SHOWS
+  {id:'peppa',g:'Shows',name:"Peppa's Pig-nic Party",v:'Centre Stage',dur:40,sen:'care',cost:'Free',tk:0,pp:false,bk:true,ages:'Under 5s',pri:2,multi:false,
+   desc:'Brand new 2026 show with baby Evie Pig. 40 min. Sit end of row near exit. Ear defenders recommended.',
+   slots:[{day:'wed',s:'11:00',e:'11:40',l:'Wed 11:00'},{day:'wed',s:'13:30',e:'14:10',l:'Wed 13:30'}]},
+  {id:'jack',g:'Shows',name:'Jack and the Beanstalk',v:'Centre Stage',dur:60,sen:'care',cost:'Free',tk:0,pp:false,bk:true,ages:'All',pri:5,multi:false,
+   desc:'Full panto — villain, giant, audience shouts. ~1hr. Conditional: only go if she has napped and the day has gone well. Nothing lost if you skip.',
+   slots:[{day:'thu',s:'16:00',e:'17:00',l:'Thu 16:00'},{day:'thu',s:'19:30',e:'20:30',l:'Thu 19:30 (too late)'}]},
+  {id:'mmaker',g:'Shows',name:'Mister Maker Farewell Tour',v:'Studio 36',dur:60,sen:'care',cost:'Free',tk:0,pp:false,bk:true,ages:'5+',pri:6,multi:false,
+   desc:'His final ever live show. Studio 36 is the loudest venue. Participatory crafts. Better for older children.',
+   slots:[{day:'thu',s:'13:00',e:'14:00',l:'Thu 13:00'},{day:'thu',s:'16:00',e:'17:00',l:'Thu 16:00'}]},
+  {id:'animals',g:'Shows',name:'Animals and Mythical Beasts',v:'Studio 36',dur:60,sen:'care',cost:'Free',tk:0,pp:false,bk:true,ages:'5+',pri:7,multi:false,
+   desc:'Immersive Studio 36 show. 1hr. Better suited to 5+ years.',
+   slots:[{day:'tue',s:'16:00',e:'17:00',l:'Tue 16:00'},{day:'tue',s:'19:30',e:'20:30',l:'Tue 19:30'}]},
+  // FREE SHOWS
+  {id:'totsswim',g:'Swimming',name:'Tots Quiet Swim',v:'Splash — Tots Pool',dur:60,sen:'safe',cost:'Free',tk:0,pp:false,bk:false,ages:'All',pri:0,multi:true,
+   desc:'Tots pool with 3 slides. 9–10am is the calm window before the main pool gets busy. Walk-in, no booking.',
+   slots:[{day:'tue',s:'09:00',e:'10:00',l:'Tue'},{day:'wed',s:'09:00',e:'10:00',l:'Wed'},{day:'thu',s:'09:00',e:'10:00',l:'Thu'}]},
+  {id:'pc-circus',g:'Shows',name:'Puppet Castle: Big Top Circus',v:'Puppet Castle',dur:20,sen:'safe',cost:'Free',tk:0,pp:false,bk:false,ages:'All',pri:0,multi:false,
+   desc:'Quietest indoor show. Intimate puppet theatre ~50 seats. Gentle circus, hand puppets. No haze, no pyrotechnics.',
+   slots:[{day:'mon',s:'15:00',e:'15:20',l:'Mon 15:00'},{day:'mon',s:'16:30',e:'16:50',l:'Mon 16:30'},{day:'wed',s:'11:00',e:'11:20',l:'Wed 11:00'},{day:'wed',s:'13:00',e:'13:20',l:'Wed 13:00'}]},
+  {id:'pc-haunt',g:'Shows',name:'Puppet Castle: Haunted Hotel',v:'Puppet Castle',dur:20,sen:'skip',cost:'Free',tk:0,pp:false,bk:false,ages:'All',pri:0,multi:false,
+   desc:'Spooky ghost puppets, sudden sounds. Likely frightening for sensory-sensitive children.',
+   slots:[{day:'tue',s:'11:00',e:'11:20',l:'Tue 11:00'},{day:'thu',s:'11:00',e:'11:20',l:'Thu 11:00'}]},
+  {id:'jumpstart',g:'Shows',name:'Jump Start with Billy & Bonnie',v:'Skyline Stage',dur:30,sen:'care',cost:'Free',tk:0,pp:false,bk:false,ages:'All',pri:0,multi:false,
+   desc:'Morning bear aerobics. Freeflow — leave anytime. Good test of the Pavilion.',
+   slots:[{day:'tue',s:'10:00',e:'10:30',l:'Tue 10:00'},{day:'wed',s:'10:00',e:'10:30',l:'Wed 10:00'}]},
+  {id:'funstopgo',g:'Shows',name:'Fun, Stop, Go',v:'Skyline Stage',dur:30,sen:'care',cost:'Free',tk:0,pp:false,bk:false,ages:'All',pri:0,multi:false,
+   desc:'Morning toddler action-rhyme show. New for 2026. Freeflow.',
+   slots:[{day:'thu',s:'10:00',e:'10:30',l:'Thu 10:00'}]},
+  {id:'sk-sea',g:'Shows',name:'Skyline Gang: Beside the Sea',v:'Skyline Stage',dur:30,sen:'care',cost:'Free',tk:0,pp:false,bk:false,ages:'Under 5s',pri:0,multi:false,
+   desc:'Character seaside adventure. Toddlers love these characters. Freeflow.',
+   slots:[{day:'tue',s:'15:00',e:'15:30',l:'Tue 15:00'},{day:'wed',s:'19:00',e:'19:30',l:'Wed 19:00'}]},
+  {id:'sk-imagine',g:'Shows',name:'Skyline Gang: Imagine That!',v:'Skyline Stage',dur:30,sen:'skip',cost:'Free',tk:0,pp:false,bk:false,ages:'Under 5s',pri:0,multi:false,
+   desc:"Butlin's describe this as high-energy and fast-paced. Loudest of the Skyline Gang shows.",
+   slots:[{day:'wed',s:'15:00',e:'15:30',l:'Wed 15:00'}]},
+  {id:'defenders',g:'Shows',name:"Billy & Bonnie: Defenders",v:'Skyline Stage',dur:30,sen:'skip',cost:'Free',tk:0,pp:false,bk:false,ages:'Under 5s',pri:0,multi:false,
+   desc:'Flickering lights and glitching audio are the plot. Sensory-heavy by design.',
+   slots:[{day:'tue',s:'16:30',e:'17:00',l:'Tue 16:30'}]},
+  {id:'sarakasi',g:'Shows',name:'Sarakasi Allstars',v:'Skyline Stage',dur:20,sen:'skip',cost:'Free',tk:0,pp:false,bk:false,ages:'5+',pri:0,multi:false,
+   desc:'Kenyan acrobatic circus. Very loud, fast, unpredictable. Better for older children.',
+   slots:[{day:'wed',s:'12:00',e:'12:20',l:'Wed 12:00'},{day:'thu',s:'15:00',e:'15:20',l:'Thu 15:00'}]},
+  {id:'totsdisco',g:'Shows',name:'Tots Disco',v:'Skyline Stage',dur:30,sen:'skip',cost:'Free',tk:0,pp:false,bk:false,ages:'Under 5s',pri:0,multi:false,
+   desc:'Loud music, social dancing, crowded. Not suited to selective mutism.',
+   slots:[{day:'tue',s:'18:00',e:'18:30',l:'Tue 18:00'},{day:'wed',s:'18:00',e:'18:30',l:'Wed 18:00'},{day:'thu',s:'18:00',e:'18:30',l:'Thu 18:00'}]},
+  // PHOTOSHOOTS
+  {id:'ph-peppa',g:'Photoshoots',name:'Peppa Pig photoshoot',v:'Skyline Pavilion',dur:20,sen:'care',cost:'Free',tk:0,pp:false,bk:false,ages:'All',pri:0,multi:true,
+   desc:'No need to speak — just stand near the character. Tell the redcoat about selective mutism.',
+   slots:[{day:'tue',s:'11:30',e:'11:50',l:'Tue 11:30 (Peppa & George)'},{day:'tue',s:'13:30',e:'13:50',l:'Tue 13:30 (Peppa)'},{day:'thu',s:'17:00',e:'17:20',l:'Thu 17:00 (Peppa & George)'}]},
+  {id:'ph-skyline',g:'Photoshoots',name:'Skyline Gang photoshoot',v:'Skyline Pavilion',dur:20,sen:'care',cost:'Free',tk:0,pp:false,bk:false,ages:'All',pri:0,multi:true,
+   desc:'Right after their show — great timing. She can watch from distance first.',
+   slots:[{day:'tue',s:'15:45',e:'16:05',l:'Tue 15:45'},{day:'wed',s:'16:00',e:'16:20',l:'Wed 16:00'}]},
+  {id:'ph-billy',g:'Photoshoots',name:'Billy & Bonnie Bear photoshoot',v:'Skyline Pavilion',dur:20,sen:'safe',cost:'Free',tk:0,pp:false,bk:false,ages:'All',pri:0,multi:true,
+   desc:'The cuddly mascot bears. Gentle and patient with little ones.',
+   slots:[{day:'mon',s:'17:00',e:'17:20',l:'Mon 17:00'},{day:'tue',s:'17:15',e:'17:35',l:'Tue 17:15'},{day:'wed',s:'11:30',e:'11:50',l:'Wed 11:30'}]},
+  {id:'ph-dino',g:'Photoshoots',name:'Dino Expo Adventure',v:'Skyline Pavilion',dur:20,sen:'care',cost:'Free',tk:0,pp:false,bk:false,ages:'All',pri:0,multi:true,
+   desc:'Dinosaur character. Can be unpredictable — assess on the day.',
+   slots:[{day:'tue',s:'14:15',e:'14:35',l:'Tue 14:15'},{day:'wed',s:'14:15',e:'14:35',l:'Wed 14:15'},{day:'thu',s:'14:15',e:'14:35',l:'Thu 14:15'}]},
+  {id:'ph-family',g:'Photoshoots',name:'Pig Family photoshoot',v:'Skyline Pavilion',dur:20,sen:'care',cost:'Free',tk:0,pp:false,bk:false,ages:'All',pri:0,multi:true,
+   desc:'Mummy, Daddy and Evie Pig. Full Peppa family meet.',
+   slots:[{day:'wed',s:'17:00',e:'17:20',l:'Wed 17:00'},{day:'thu',s:'13:30',e:'13:50',l:'Thu 13:30'}]},
+  {id:'ph-rainbow',g:'Photoshoots',name:'Rainbow the dog photoshoot',v:'Skyline Pavilion',dur:20,sen:'safe',cost:'Free',tk:0,pp:false,bk:false,ages:'All',pri:0,multi:false,
+   desc:'Skyline Gang dog character. Very gentle.',
+   slots:[{day:'thu',s:'11:30',e:'11:50',l:'Thu 11:30'}]},
+];
+
+const SCENARIOS=[
+  {
+    id:'sensory-tot',
+    name:'Sensory-friendly toddler',
+    desc:'One anchor per half-day. Outdoor buffer between indoor activities. Plenty of unstructured time.',
+    tags:['2–4yrs','Sensory-aware','Light pace'],
+    color:'#1E8C5C',bg:'#E8F7EF',
+    sel:{qsp:[0],totsswim:[0,1,2],minibow:[1],pottery:[6],balance:[3],peppa:[0],jack:[0],'pc-circus':[0],'sk-sea':[0],'ph-billy':[0]}
+  },
+  {
+    id:'active-tot',
+    name:'Active toddler',
+    desc:'More shows, more characters. Good if your child thrives on a busier day.',
+    tags:['2–4yrs','Full programme'],
+    color:'#1d4ed8',bg:'#eff6ff',
+    sel:{qsp:[0],totsswim:[0,1,2],minibow:[1],totsfootball:[3],pottery:[6],balance:[3],peppa:[0],jack:[0],'pc-circus':[0],jumpstart:[0],'sk-sea':[0],'ph-peppa':[0],'ph-skyline':[0]}
+  },
+  {
+    id:'older-kids',
+    name:'Older children (5–8yrs)',
+    desc:'Theatre shows, tech and adventure activities. Less toddler-focused, more independently engaging.',
+    tags:['5–8yrs','Adventure focus'],
+    color:'#7c3aed',bg:'#ede9fe',
+    sel:{jack:[0],mmaker:[0],'pc-circus':[0],techputt:[0],advgolf:[1],totsswim:[0],'sk-sea':[0],'ph-skyline':[0]}
+  }
+];
+
+const CHECKLIST=[
+  {t:'Before you go',items:["Call Butlin's Disability line — ask about SEN support and priority seating","Download the Butlin's Bognor Regis app","Buy tokens pre-arrival (4 tokens = £28.40 at 4-token tier)","Set alarm for ~18 May at 9am — Quiet Hour Soft Play goes first","Book bowling lane on arrival Monday (only 10 lanes)"]},
+  {t:'Pack',items:['Ear defenders — essential for Centre Stage shows','Comfort toy/blanket for Rosie','Buggy — 60-acre resort','Swim nappies + towels','Familiar snacks','Own bike helmet if she has one (Balanceability)','Sun cream + hats (Bognor = sunniest spot in UK)','Picture schedule to preview each day with Rosie']},
+  {t:'On arrival',items:["Settle in the room before going anywhere","Find toilets, Tots Fairground on day 1","Tell every redcoat Rosie doesn't speak to new people","Centre Stage: arrive 15 min early, sit end of row near exit"]}
+];
+
+
+const ZONEINFO=[
+  {pin:'#6366f1',name:'Skyline Pavilion',desc:'The hub — Centre Stage, Skyline Stage, Puppet Castle, soft play, character meets, arcade, most restaurants'},
+  {pin:'#06b6d4',name:'Splash Waterworld',desc:'Pools including the calm Tots Pool. 2 min from Pavilion'},
+  {pin:'#22c55e',name:'North (Bullseye Bay & Activity Gardens)',desc:'Outdoor activities — archery, football, balance bikes. 5-8 min walk north'},
+  {pin:'#f59e0b',name:'Pottery Studio',desc:'Calm craft sessions. 3-5 min from Pavilion'},
+  {pin:'#ec4899',name:'PLAYXPERIENCE',desc:'TechPutt, shuffleboard, karaoke pods. 3 min from Pavilion'},
+  {pin:'#8b5cf6',name:'Studio 36',desc:'Larger live shows. Can be loud. 5-7 min from Pavilion'}
+];
+const SENSORY_TIPS=[
+  {t:'Pack the ear defenders',d:'Centre Stage and Studio 36 use haze and amplified sound. Put them on before entering, not once she is already distressed.'},
+  {t:'Always sit end-of-row near an exit',d:'For any show, this lets you leave the moment she has had enough — no climbing over people, no fuss.'},
+  {t:'Tell every redcoat about selective mutism',d:'A quick word means they will not pressure her to speak or single her out. Most are brilliant once they know.'},
+  {t:'Use the quiet windows',d:'Quiet Hour Soft Play (Tue 8am) and the 9-10am Tots Swim are the calmest times to be in those spaces before crowds build.'},
+  {t:'Build in decompression after stimulation',d:'After a show or busy activity, head outdoors or back to the room. The plan already spaces these out.'},
+  {t:'Preview each day with her',d:'Use the "Tell Rosie about tomorrow" button the night before so she knows what is coming. Predictability reduces anxiety.'}
+];
+const SOS_SPOTS=[
+  'Back to your accommodation — always the safest reset',
+  'The beach and seafront — open space, fresh air, low stimulation',
+  'Quieter outdoor areas away from the Pavilion',
+  'Step outside any venue — staff understand and will let you back in'
+];
+const WEATHER=[
+  {d:'Mon',ic:'⛅',t:'19°'},{d:'Tue',ic:'☀️',t:'21°'},{d:'Wed',ic:'☀️',t:'22°'},{d:'Thu',ic:'⛅',t:'20°'},{d:'Fri',ic:'🌦️',t:'18°'}
+];
+
+// ═══ STATE ═══
+let S={childAge:'3',numPeople:'3',sensory:true,arrival:'13:00',bedNap:'19:00',bedNoNap:'17:30',napDays:['tue','thu'],wakeTime:'07:00',napTime:'12:30',napDur:'120'};
+let SEL={};let DONE={};let PREV_SEL=null;let CHECK={};let NOTES={};
+let V='plan',AD='mon',EX={},SHOW_S=false,ADD_CAT=null;
+let PLAN=null;
+
+function save(){try{localStorage.setItem('bp_sel',JSON.stringify(SEL));localStorage.setItem('bp_s',JSON.stringify(S));localStorage.setItem('bp_done',JSON.stringify(DONE));localStorage.setItem('bp_check',JSON.stringify(CHECK));localStorage.setItem('bp_notes',JSON.stringify(NOTES));}catch(e){}}
+function load(){try{const a=localStorage.getItem('bp_sel');if(a)SEL=JSON.parse(a);const b=localStorage.getItem('bp_s');if(b)S=JSON.parse(b);const d=localStorage.getItem('bp_done');if(d)DONE=JSON.parse(d);const ch=localStorage.getItem('bp_check');if(ch)CHECK=JSON.parse(ch);const nt=localStorage.getItem('bp_notes');if(nt)NOTES=JSON.parse(nt);}catch(e){}}
+
+// ═══ HELPERS ═══
+function slotSt(item,si){
+  const s=item.slots[si];if(!s)return'ok';
+  const sS=toM(s.s),sE=toM(s.e);
+  for(const[oid,slots]of Object.entries(SEL)){if(oid===item.id)continue;const oi=ITEMS.find(i=>i.id===oid);if(!oi)continue;for(const osi of slots){const os=oi.slots[osi];if(!os||os.day!==s.day)continue;if(sS<toM(os.e)&&toM(os.s)<sE)return'clash';const g=Math.min(Math.abs(sS-toM(os.e)),Math.abs(toM(os.s)-sE));if(g>0&&g<wt(item.v,oi.v))return'tight';}}
+  return'ok';
+}
+function anchorCount(day){let n=0;Object.entries(SEL).forEach(([id,slots])=>{const item=ITEMS.find(i=>i.id===id);if(!item)return;slots.forEach(si=>{const s=item.slots[si];if(s&&s.day===day)n++;});});return n;}
+function bestSlot(item){let b=0,bs=-99;item.slots.forEach((s,i)=>{const st=slotSt(item,i);if(st==='clash')return;const sc=(st==='ok'?10:3)-anchorCount(s.day)*3;if(sc>bs){bs=sc;b=i;}});return b;}
+function oOpts(day,sM){const o=[];if(sM<600)o.push('Tots Quiet Swim 9-10am');o.push('Tots Fairground','Beach','Splash pool','Playground');return o;}
+function bedCD(t,bedM){const m=bedM-toM(t);if(m<=0||m>480)return null;const h=Math.floor(m/60),mn=m%60;return(h>0?h+'h':'')+( mn>0?mn+'m':'')+' to bed';}
+function nowNext(dayItems){const now=new Date();const curM=now.getHours()*60+now.getMinutes();const d=now.getDay();const dayMap=[null,'mon','tue','wed','thu','fri',null];const today=dayMap[d];if(today!==AD)return null;const real=now.getFullYear()===2026&&now.getMonth()===5&&now.getDate()>=15&&now.getDate()<=19;if(!real)return null;const active=dayItems.find(i=>toM(i.time)<=curM&&toM(i.end)>curM);const next=dayItems.find(i=>toM(i.time)>curM&&i.type!=='evening');return{active,next,curM};}
+function rosiePrep(day){const items=(PLAN.days[day]||[]).filter(i=>i.type==='anchor'||i.type==='show');if(!items.length)return'A free day — explore wherever you like!';const map={'Swim':'go swimming','Peppa':'watch Peppa Pig','Pottery':'paint a pot','Soft Play':'play in soft play','Bow':'do archery','Football':'play football','Balance':'ride a balance bike','Jack':'watch a panto show','Puppet':'watch puppets','Skyline':'see the Skyline Gang','Golf':'play mini golf','Bowling':'go bowling','photo':'have a photo with a character','Photo':'have a photo with a character'};const parts=items.slice(0,4).map(i=>{for(const[k,v]of Object.entries(map)){if(i.name.includes(k))return v;}return i.name.toLowerCase();});return'Tomorrow: '+parts.join(', then ')+'.';}
+
+// ═══ SCHEDULER ═══
+function buildPlan(){
+  const napD=S.napDays||[];const np=parseInt(S.numPeople)||3;
+  const days={};DAYS.forEach(d=>{days[d]=[];});
+  Object.entries(SEL).forEach(([id,slots])=>{const item=ITEMS.find(i=>i.id===id);if(!item)return;slots.forEach(si=>{const slot=item.slots[si];if(!slot)return;days[slot.day].push({time:slot.s,end:slot.e,name:item.name,venue:item.v,dur:item.dur+'min',type:item.bk?'anchor':'show',tags:[item.bk?'Book':'Walk-in',item.cost==='Free'?'Free':item.cost].filter(Boolean),desc:item.desc,note:item.bk?null:'Wander over if nearby'});});});
+  DAYS.slice(0,4).forEach(d=>{
+    const isNap=napD.includes(d);const bed=isNap?S.bedNap:S.bedNoNap;const bedM=toM(bed);
+    if(d==='mon')days[d].push({time:S.arrival,end:toT(toM(S.arrival)+60),name:'Check in & settle',venue:'Hotel',dur:'1hr',type:'admin',tags:[],note:"Explore the room first."});
+    const napStartM=toM(S.napTime),napDurM=parseInt(S.napDur)||120,napEndM=napStartM+napDurM;
+    if(isNap){days[d].push({time:toT(napStartM-30),end:S.napTime,name:'Lunch',venue:'In-room',dur:'30min',type:'admin',tags:[]});days[d].push({time:S.napTime,end:toT(napEndM),name:'Nap',venue:'Room',dur:napDurM+'min',type:'admin',tags:[],note:'Protect this.'});}
+    else{const mE=days[d].filter(e=>toM(e.end)<=780).reduce((m,e)=>Math.max(m,toM(e.end)),toM(S.wakeTime));days[d].push({time:toT(Math.max(mE+5,720)),end:toT(Math.max(mE+5,720)+40),name:'Lunch',venue:'In-room',dur:'40min',type:'admin',tags:[]});}
+    const dinM=bedM-90;
+    days[d].push({time:toT(dinM),end:toT(dinM+30),name:'Dinner',venue:'Restaurant',dur:'30min',type:'admin',tags:[],meals:MEALS[ZONES[days[d].filter(e=>toM(e.time)<dinM).pop()?.venue]||'pav']});
+    days[d].push({time:toT(bedM-30),end:bed,name:'Bath & bed',venue:'Room',type:'admin',tags:[]});
+    if(EVE[d])days[d].push({time:bed,end:toT(bedM+120),name:'Evening — one parent heads out',venue:'Resort',type:'evening',tags:[],options:EVE[d]});
+  });
+  days.fri.push({time:'09:00',end:'10:00',name:'Pack up & check out',venue:'Hotel',type:'admin',tags:[],note:"Slow morning."});
+  const result={};const walkW=[];const dayAnchors={};
+  DAYS.forEach(d=>{
+    let items=days[d].sort((a,b)=>a.time.localeCompare(b.time));
+    const anch=items.filter(i=>i.type==='anchor'||i.type==='show');
+    dayAnchors[d]=anch.length;
+    items=items.filter(i=>{if(i.type!=='admin'&&i.type!=='evening')return true;return!anch.some(a=>toM(i.time)<toM(a.end)&&toM(a.time)<toM(i.end));});
+    items.sort((a,b)=>a.time.localeCompare(b.time));
+    for(let i=0;i<anch.length-1;i++){const g=toM(anch[i+1].time)-toM(anch[i].end);const w=wt(anch[i].venue||'',anch[i+1].venue||'');if(g>=0&&g<w)walkW.push(anch[i].name+' to '+anch[i+1].name+' ('+DL[d]+'): '+w+'min walk, '+g+'min gap');}
+    const bedM=toM(napD.includes(d)?S.bedNap:S.bedNoNap);
+    const fin=[];const dayS=d==='mon'?toM(S.arrival):toM(S.wakeTime);
+    for(let i=0;i<items.length;i++){const iS=toM(items[i].time),pE=i===0?dayS:toM(items[i-1].end);if(iS-pE>=40)fin.push({time:toT(pE),end:items[i].time,name:'Free time',venue:'Wherever Rosie leads',dur:Math.round((iS-pE)/15)*15+'min',type:'free',tags:['Free'],options:oOpts(d,pE),bedCount:bedCD(toT(pE),bedM)});items[i].bedCount=bedCD(items[i].time,bedM);fin.push(items[i]);}
+    result[d]=fin;
+  });
+  function effortOf(name){if(/Swim|Soft Play/.test(name))return 0;if(/Puppet Castle: Big/.test(name))return 0.5;if(/photoshoot|Photoshoot/.test(name))return 0.5;if(/Peppa|Jack|Mister Maker|Animals|Sarakasi|Disco|Imagine|Defenders|Haunted|Skyline Gang:/.test(name))return 1.5;return 1;}
+  const dayEffort={};DAYS.slice(0,4).forEach(d=>{dayEffort[d]=(result[d]||[]).filter(i=>i.type==='anchor'||i.type==='show').reduce((s,i)=>s+effortOf(i.name),0);});
+  const balance=[];DAYS.slice(0,4).forEach(d=>{if(dayEffort[d]>3.5){const lightest=DAYS.slice(0,4).filter(x=>x!==d).sort((a,b)=>dayEffort[a]-dayEffort[b])[0];balance.push(DL[d]+' is looking full — it has a lot packed in. Consider moving something to '+DL[lightest]+' for a calmer pace.');}});
+  const bookings=[];Object.entries(SEL).forEach(([id,slots])=>{const item=ITEMS.find(i=>i.id===id);if(!item||!item.bk)return;slots.forEach(si=>{const s=item.slots[si];if(s)bookings.push({name:item.name,when:s.l,cost:item.cost==='Free'?'Free':item.cost,pri:item.pri});});});
+  bookings.sort((a,b)=>a.pri-b.pri);
+  let totalTk=0;const tkB=[];Object.entries(SEL).forEach(([id,slots])=>{const item=ITEMS.find(i=>i.id===id);if(item&&item.tk>0){const qty=item.pp?np:1;const t=item.tk*qty*slots.length;totalTk+=t;tkB.push({name:item.name,each:item.tk,qty,times:slots.length,total:t,pp:item.pp});}});
+  const rate=totalTk>=20?5.20:totalTk>=16?5.85:totalTk>=12?6.10:totalTk>=8?6.40:totalTk>=4?7.10:8.50;
+  const tkP=totalTk>0?'£'+(totalTk*rate).toFixed(2)+' ('+totalTk+' x £'+rate.toFixed(2)+')':'';
+  const conflicts=[];DAYS.slice(0,4).forEach(d=>{const pl=[];Object.entries(SEL).forEach(([id,slots])=>{const item=ITEMS.find(i=>i.id===id);if(!item)return;slots.forEach(si=>{const s=item.slots[si];if(s&&s.day===d)pl.push({name:item.name,s:toM(s.s),e:toM(s.e)});});});for(let i=0;i<pl.length;i++)for(let j=i+1;j<pl.length;j++)if(pl[i].s<pl[j].e&&pl[j].s<pl[i].e)conflicts.push(pl[i].name+' and '+pl[j].name+' clash on '+DL[d]);});
+  return{days:result,bookings,totalTk,tkP,tkB,conflicts,walkW,dayAnchors,balance};
+}
+
+// ═══ GRID (sticky, shows on all tabs) ═══
+function rGrid(){
+  if(!PLAN)return'';
+  const p=PLAN;
+  let h='<div class="wg">';
+  DAYS.forEach(d=>{
+    const anchors=(p.days[d]||[]).filter(i=>i.type==='anchor'||i.type==='show');
+    const n=p.dayAnchors?.[d]||0;const isOn=d===AD&&V==='plan';const isFri=d==='fri';
+    if(isFri){h+='<div class="wg-cell fri'+(isOn?' on':'')+'" data-day="fri"><span class="wg-dot" style="background:#94a3b8"></span><span class="wg-d" style="font-size:11px;margin-left:4px">Fri 19 Jun</span><span style="font-size:10px;color:var(--muted);margin-left:5px">Checkout</span></div>';return;}
+    const col=n>=3?'#ef4444':n>=2?'#d97706':'#16a34a';
+    const lbl=n===0?'Free':n===1?'1 item':n+' items';
+    let rows='';
+    if(anchors.length===0){rows='<div class="wg-free">Open day</div>';}
+    else{anchors.slice(0,2).forEach(i=>{rows+='<div class="wg-row"><span class="wg-dot" style="background:'+tCol(i.type)+'"></span><span style="overflow:hidden;text-overflow:ellipsis">'+(i.name.length>14?i.name.slice(0,14)+'…':i.name)+'</span></div>';});if(anchors.length>2)rows+='<div class="wg-more">+' +(anchors.length-2)+' more</div>';}
+    h+='<div class="wg-cell'+(isOn?' on':'')+'" data-day="'+d+'"><div class="wg-hd"><span class="wg-d">'+DL[d].slice(0,3)+'</span><span class="wg-dt">'+DD[d]+'</span></div><div class="wg-n" style="color:'+col+'">'+lbl+'</div><div class="wg-items">'+rows+'</div></div>';
+  });
+  h+='</div>';return h;
+}
+function flashDay(day){setTimeout(()=>{const el=document.querySelector('#gd [data-day="'+day+'"]');if(el){el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),650);}},30);}
+
+// ═══ PLAN VIEW ═══
+function rPlan(){
+  const p=PLAN;const dayItems=p.days[AD]||[];
+  const nn=nowNext(dayItems);
+  let h='';
+  if(nn){h+='<div class="now-next"><div class="nn-label">Now</div><div class="nn-name">'+(nn.active?nn.active.name:'Free time')+'</div>'+(nn.next?'<div class="nn-next">Next: '+nn.next.name+' at '+nn.next.time+' — '+Math.max(0,toM(nn.next.time)-nn.curM)+'min</div>':'')+'</div>';}
+  const allW=[...p.conflicts,...p.walkW,...(p.balance||[])];
+  if(allW.length){h+='<button class="warn-btn" data-action="toggle-warns">⚠ '+allW.length+' note'+(allW.length>1?'s':'')+' '+(EX.warns?'▾':'▸')+'</button>';if(EX.warns)allW.forEach(w=>{h+='<div class="warn-item">'+w+'</div>';});}
+  const n=p.dayAnchors?.[AD]||0;const pc=n>=3?'Busy':n===2?'Steady':n===1?'Light':'Free day';
+  h+='<div class="day-hd"><span>'+DL[AD]+' · '+DD[AD]+'</span><span class="pace">'+pc+'</span></div>';
+  h+='<div class="tl">';
+  const anchorsOnDay=dayItems.filter(i=>i.type==='anchor'||i.type==='show');
+  dayItems.forEach((item,i)=>{
+    const open=!!EX['p'+AD+i];const isDone=!!DONE[AD+'_'+i];const bc=tCol(item.type);const isMain=item.type==='anchor'||item.type==='show';
+    const nextA=anchorsOnDay.find(a=>toM(a.time)>toM(item.end));const wMin=nextA?wt(item.venue||'',nextA.venue||''):0;const gap=nextA?toM(nextA.time)-toM(item.end):999;
+    h+='<div class="tl-row'+(isDone?' done':'')+(item.type==='admin'?' admin':'')+'" data-expand="p'+AD+i+'"><div class="tl-time">'+item.time+'</div><div class="tl-bar" style="background:'+bc+'"></div><div class="tl-body"><div class="tl-name">'+item.name+(isDone?' ✓':'')+'</div><div class="tl-meta">'+(item.venue||'')+(item.dur?' · '+item.dur:'')+'</div>';
+    if(open){h+='<div class="tl-exp">';if(item.note)h+='<div class="tl-note">'+item.note+'</div>';if(item.desc&&isMain)h+='<div class="tl-note">'+item.desc+'</div>';if(item.options&&item.options.length)h+='<div class="tl-note" style="color:var(--green);font-weight:600">Around: '+item.options.join(' · ')+'</div>';if(item.meals)h+='<div class="tl-note">Nearby: '+item.meals.join(', ')+'</div>';if(item.bedCount)h+='<div class="tl-bed">'+item.bedCount+'</div>';if(isMain||item.type==='free')h+='<button class="tl-done-btn'+(isDone?' done':'')+'" data-done="'+AD+'_'+i+'">'+(isDone?'✓ Done':'Mark done')+'</button>';h+='</div>';}
+    else if(item.bedCount)h+='<div class="tl-bed" style="margin-top:2px">'+item.bedCount+'</div>';
+    h+='</div></div>';
+    if(wMin>0&&isMain&&gap<90)h+='<div class="walk-sep"><div class="walk-line"></div>🚶 '+wMin+'min walk to '+(ZN[ZONES[nextA.venue]||'pav']||'next venue')+'<div class="walk-line"></div></div>';
+  });
+  h+='</div>';
+  const nextDay=DAYS[DAYS.indexOf(AD)+1];
+  if(nextDay&&nextDay!=='fri'){h+='<button class="rosie-btn" data-action="prep-story-'+nextDay+'">🌙 Tell Rosie about '+DL[nextDay]+'</button>';if(EX['story_'+nextDay])h+='<div class="rosie-box"><div class="rosie-lbl">Read to Rosie tonight</div>'+rosiePrep(nextDay)+'</div>';}
+  // Day notes
+  const noteVal=NOTES[AD]||'';
+  if(EX['note_'+AD]){h+='<div class="day-note-box"><textarea data-note="'+AD+'" placeholder="How did '+DL[AD]+' go? Jot anything to remember...">'+noteVal+'</textarea></div>';}
+  else{h+='<button class="day-note-btn" data-action="note-'+AD+'">📝 '+(noteVal?'Note: '+noteVal.slice(0,40)+(noteVal.length>40?'...':''):'Add a note for '+DL[AD])+'</button>';}
+  return h;
+}
+
+// ═══ ADD VIEW ═══
+function rAdd(){
+  const np=parseInt(S.numPeople)||3;
+  let h='';
+  h+='<div class="settings-bar" data-action="toggle-settings"><span>'+(SHOW_S?'▾':'▸')+' Settings</span><span class="sm">'+S.childAge+'yr · wake '+S.wakeTime+' · nap '+S.napTime+' · bed '+S.bedNap+'</span></div>';
+  if(SHOW_S){
+    h+='<div class="settings-panel">';
+    h+='<div class="sg3">';
+    [['childAge','Age',[1,2,3,4,5,6,7,8].map(a=>[String(a),a+'yr'])],['numPeople','People',[1,2,3,4,5].map(n=>[String(n),String(n)])],['arrival','Arrive Mon',['10:00','11:00','12:00','13:00','14:00','15:00'].map(t=>[t,t])]].forEach(([k,lb,opts])=>{h+='<div class="fl"><label>'+lb+'</label><select data-setting="'+k+'">'+opts.map(([v,l])=>'<option value="'+v+'"'+(S[k]===v?' selected':'')+'>'+l+'</option>').join('')+'</select></div>';});
+    h+='</div><div class="sg2">';
+    [['bedNap','Bed (nap)'],['bedNoNap','Bed (no nap)']].forEach(([k,lb])=>{const opts=['17:00','17:30','18:00','18:30','19:00','19:30','20:00','21:00'];h+='<div class="fl"><label>'+lb+'</label><select data-setting="'+k+'">'+opts.map(t=>'<option value="'+t+'"'+(S[k]===t?' selected':'')+'>'+t+'</option>').join('')+'</select></div>';});
+    h+='</div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">DAILY RHYTHM</div><div class="sg3">';
+    [['wakeTime','Wake'],['napTime','Nap starts'],['napDur','Nap length']].forEach(([k,lb])=>{const opts=k==='wakeTime'?['06:00','06:30','07:00','07:30','08:00']:k==='napTime'?['11:30','12:00','12:30','13:00','13:30','14:00']:[['60','1hr'],['90','1.5hr'],['120','2hr'],['150','2.5hr']];h+='<div class="fl"><label>'+lb+'</label><select data-setting="'+k+'">'+opts.map(o=>Array.isArray(o)?'<option value="'+o[0]+'"'+(S[k]===o[0]?' selected':'')+'>'+o[1]+'</option>':'<option value="'+o+'"'+(S[k]===o?' selected':'')+'>'+o+'</option>').join('')+'</select></div>';});
+    h+='</div><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:3px">NAP DAYS</div><div class="nap-row">'+['mon','tue','wed','thu'].map(d=>'<button class="nap-btn'+(S.napDays.includes(d)?' on':'')+'" data-napday="'+d+'">'+d[0].toUpperCase()+d.slice(1)+'</button>').join('')+'</div>';
+    h+='<button class="sen-btn'+(S.sensory?' on':'')+'" data-action="sen">'+(S.sensory?'✓ Sensory-aware mode':'Sensory-aware mode')+'</button>';
+    if(S.sensory)h+='<div class="sen-note">Dims loud shows · sorts safest first</div>';
+    h+='</div>';
+  }
+  h+='<div class="cat-pills">'+['All','Activities','Shows','Swimming','Photoshoots'].map(g=>'<button class="cat-pill'+((ADD_CAT===g||(ADD_CAT===null&&g==='All'))?' on':'')+'" data-catpill="'+g+'">'+g+'</button>').join('')+'</div>';
+  const selCount=Object.keys(SEL).length;
+  if(selCount===0){
+    h+='<div style="padding:8px 8px 2px"><div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:7px;padding:0 2px">Start with a suggested plan:</div>';
+    SCENARIOS.forEach(sc=>{h+='<div class="sc-card" style="border:1.5px solid '+sc.color+'22;background:'+sc.bg+'" data-scenario="'+sc.id+'"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1"><div style="font-size:14px;font-weight:800;color:'+sc.color+';margin-bottom:2px">'+sc.name+'</div><div style="font-size:12px;color:#374151;line-height:1.5;margin-bottom:4px">'+sc.desc+'</div><div style="display:flex;flex-wrap:wrap;gap:3px">'+sc.tags.map(t=>'<span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:'+sc.color+'18;color:'+sc.color+'">'+t+'</span>').join('')+'</div></div><span style="font-size:18px;color:'+sc.color+';flex-shrink:0">→</span></div></div>';});
+    h+='<div style="font-size:11px;color:#9ca3af;text-align:center;padding:5px 0">or pick items individually below</div></div>';
+  } else {
+    h+='<div class="sel-bar"><span>'+selCount+' item'+(selCount>1?'s':'')+' selected</span><button class="clear-btn" data-action="clear">Clear all</button></div>';
+  }
+  const groups=['Activities','Shows','Swimming','Photoshoots'];
+  groups.forEach(grp=>{
+    if(ADD_CAT&&ADD_CAT!=='All'&&ADD_CAT!==grp)return;
+    let list=ITEMS.filter(i=>i.g===grp);
+    if(S.sensory)list=[...list].sort((a,b)=>({safe:0,care:1,skip:2}[a.sen]||1)-({safe:0,care:1,skip:2}[b.sen]||1));
+    if(!list.length)return;
+    h+='<div class="sec-hd">'+grp+'</div>';
+    list.forEach(item=>{
+      const sel=SEL[item.id];const active=sel&&sel.length>0;const dim=S.sensory&&item.sen==='skip';
+      const dotCol={safe:'var(--green)',care:'var(--amber)',skip:'#B83030'}[item.sen]||'var(--muted)';
+      const descOpen=!!EX['d_'+item.id];
+      h+='<div class="ic'+(active?' sel':'')+(dim?' dim':'')+'">';
+      h+='<div class="ic-main" data-toggle="'+item.id+'"><span class="ic-dot" style="background:'+dotCol+'"></span><div style="flex:1"><div class="ic-label">'+item.name+'</div><div class="ic-sub">'+item.ages+(item.cost!=='Free'?' · '+item.cost:'')+'</div></div><div class="ic-actions"><button class="ic-exp-btn" data-expand="d_'+item.id+'">'+(descOpen?'▾':'▸')+'</button><div class="ic-cb'+(active?' on':'')+'">'+(active?'✓':'')+'</div></div></div>';
+      if(descOpen)h+='<div class="ic-desc">'+item.desc+'</div>';
+      if(active&&item.slots.length>1){
+        const isMulti=item.multi;
+        h+='<div class="slots"><div class="slots-hd"><span>'+( isMulti?'Pick days:':'Pick slot:')+'</span>'+(isMulti?'<button class="slots-all" data-slotall="'+item.id+'">'+(sel.length===item.slots.length?'Deselect all':'Select all')+'</button>':'')+'</div><div class="slot-btns">';
+        item.slots.forEach((s,i)=>{
+          const isSel=sel.includes(i);const st=slotSt(item,i);
+          const stTxt=st==='clash'?'Clashes':st==='tight'?'Tight':'Works';
+          const altIdx=st==='clash'?item.slots.findIndex((ss,j)=>j!==i&&slotSt(item,j)==='ok'):-1;
+          const altHint=st==='clash'&&altIdx>=0&&!isSel?'<span style="font-size:9px;color:var(--green);display:block">Try '+item.slots[altIdx].l+'</span>':'';
+          h+='<button class="sb'+(isSel?' on':'')+(st!=='ok'?' '+st:'')+'" data-slot="'+item.id+'" data-si="'+i+'">'+(isMulti?(isSel?'☑ ':'☐ '):'')+s.l+'<span class="sb-st '+st+'">'+stTxt+'</span>'+altHint+'</button>';
+        });
+        h+='</div></div>';
+      }
+      h+='</div>';
+    });
+  });
+  return h;
+}
+
+// ═══ PREP VIEW ═══
+
+// ═══ GUIDE VIEW ═══
+function rGuide(){
+  let h='<div style="padding:8px 0 4px">';
+  // Weather
+  h+='<div class="prep-hd" style="padding-left:12px">Typical June weather in Bognor Regis</div>';
+  h+='<div class="weather-strip">'+WEATHER.map(w=>'<div class="wx-day"><div class="wx-d">'+w.d+'</div><div class="wx-ic">'+w.ic+'</div><div class="wx-t">'+w.t+'</div></div>').join('')+'</div>';
+  h+='<div style="font-size:11px;color:var(--muted);padding:0 12px 8px;line-height:1.5">Bognor Regis is one of the sunniest spots in the UK. Forecast is indicative — check nearer the time. Pack sun cream and a light layer for evenings.</div>';
+  // Sensory toolkit
+  h+='<div class="prep-hd" style="padding-left:12px">Sensory toolkit for Rosie</div>';
+  SENSORY_TIPS.forEach(tip=>{h+='<div class="guide-card"><h3>'+tip.t+'</h3><p>'+tip.d+'</p></div>';});
+  // SOS
+  h+='<div class="sos-card"><h3>If Rosie gets overwhelmed</h3><p>Calm-down spots near the action:</p>';
+  SOS_SPOTS.forEach(s=>{h+='<p>• '+s+'</p>';});
+  h+='<p style="margin-top:6px">Bring her comfort item everywhere. A familiar object is the fastest reset.</p></div>';
+  // Resort zones
+  h+='<div class="prep-hd" style="padding-left:12px">Resort layout</div>';
+  h+='<div class="guide-card"><div class="zone-map">';
+  ZONEINFO.forEach(z=>{h+='<div class="zone-row"><span class="zone-pin" style="background:'+z.pin+'"></span><div style="flex:1"><div class="zone-name">'+z.name+'</div><div class="zone-walk">'+z.desc+'</div></div></div>';});
+  h+='</div></div>';
+  // Practical
+  h+='<div class="prep-hd" style="padding-left:12px">Practical notes</div>';
+  h+='<div class="guide-card"><p><span class="label">Buggy:</span> The resort is 60 acres. Bring the buggy even though Rosie is 3 — it doubles as a safe base and nap spot.</p><p><span class="label">Changing & toilets:</span> Located throughout the Pavilion and near Splash. Family changing available.</p><p><span class="label">Food:</span> Familiar snacks in your bag avoid mealtime meltdowns. In-room breakfasts make slow mornings easier.</p><p><span class="label">Quiet Hour Soft Play:</span> Tuesday 8am — the single best sensory-friendly slot on the resort. Book it first.</p></div>';
+  h+='</div>';
+  return h;
+}
+function rPrep(){
+  const p=PLAN;const np=parseInt(S.numPeople)||3;
+  let h='<div class="prep">';
+  if(p.bookings.length){
+    h+='<div class="prep-hd">Pre-book — priority order</div><div class="book-list">';
+    p.bookings.forEach((b,i)=>{h+='<div class="book-row"><div><div class="book-name"><span class="book-num">#'+(i+1)+'</span>'+b.name+'</div><div class="book-when">'+b.when+'</div></div><span class="book-cost '+(b.cost==='Free'?'cost-free':'cost-tok')+'">'+b.cost+'</span></div>';});
+    h+='</div>';
+  }
+  if(p.tkB.length){
+    h+='<div class="prep-hd">Token breakdown</div><div class="tok-box">';
+    p.tkB.forEach(t=>{h+='<div class="tok-row"><span>'+t.name+(t.pp?' ('+t.each+'x'+t.qty+'ppl)':'')+'</span><span>'+t.total+'</span></div>';});
+    h+='<div class="tok-total"><span>Total</span><span>'+p.totalTk+' tokens · '+p.tkP+'</span></div></div>';
+    const tiers=[[1,3,8.50],[4,7,7.10],[8,11,6.40],[12,15,6.10],[16,19,5.85],[20,99,5.20]];
+    const curTk=p.totalTk;
+    h+='<div class="prep-hd">Token price tiers</div><table class="tier-tbl"><tr><th>Tokens</th><th>Each</th><th>Total</th><th></th></tr>';
+    tiers.forEach(([lo,hi,rate])=>{const isCur=curTk>=lo&&curTk<=hi;h+='<tr'+(isCur?' class="cur"':'')+'><td>'+lo+(hi<99?'–'+hi:'+')+'</td><td>£'+rate.toFixed(2)+'</td><td>'+(isCur&&curTk>0?'£'+(curTk*rate).toFixed(2):'—')+'</td><td style="font-size:10px">'+(isCur?'← you':'')+((!isCur&&curTk>0&&lo>curTk)?'+' +(lo-curTk)+' tokens':'')+'</td></tr>';});
+    h+='</table>';
+  }
+  CHECKLIST.forEach((sec,si)=>{
+    h+='<div class="prep-hd">'+sec.t+'</div>';
+    sec.items.forEach((it,ii)=>{const key='cl_'+si+'_'+ii;const ck=!!CHECK[key];h+='<div class="cl-item'+(ck?' checked':'')+'" data-check="'+key+'"><span class="cl-check'+(ck?' on':'')+'">'+(ck?'✓':'')+'</span><span>'+it+'</span></div>';});
+  });
+  h+='</div>';return h;
+}
+
+// ═══ RENDER ═══
+function render(){
+  PLAN=buildPlan();
+  const np=parseInt(S.numPeople)||3;
+  const totalTk=Object.entries(SEL).reduce((a,[id,slots])=>{const item=ITEMS.find(i=>i.id===id);return item&&item.tk>0?a+item.tk*(item.pp?np:1)*slots.length:a;},0);
+  const rate=totalTk>=4?7.10:8.50;
+  document.getElementById('gd').innerHTML=rGrid();
+  document.getElementById('mn').innerHTML=V==='plan'?rPlan():V==='add'?rAdd():V==='guide'?rGuide():rPrep();
+  let nav='';
+  if(PREV_SEL)nav='<div class="undo-bar"><span>Changed</span><button class="undo-btn" data-action="undo">↩ Undo</button></div>';
+  nav+='<div class="nv-row">';
+  const tabDefs=[['plan','▤','Plan'],['add','＋','Build'],['prep','✓','Book'],['guide','◎','Guide']];
+  nav+=tabDefs.map(([v,ic,lb])=>'<button class="nb'+(V===v?' on':'')+'" data-nav="'+v+'"><span class="ic">'+ic+'</span>'+lb+'</button>').join('');
+  nav+='</div>';
+  if(totalTk>0&&V==='add')nav='<div class="footer-tok">🪙 '+totalTk+' tokens · £'+(totalTk*rate).toFixed(2)+' pre-arrival</div>'+nav;
+  document.getElementById('nv').innerHTML=nav;
+}
+
+// ═══ EVENTS ═══
+function copyPlan(){
+  const lines=["Butlin's Bognor Regis — 15-19 June 2026",""];
+  DAYS.slice(0,5).forEach(d=>{lines.push(DL[d]+' '+DD[d]);const items=(PLAN.days[d]||[]).filter(i=>i.type==='anchor'||i.type==='show');if(!items.length){lines.push('  Free day');}else{items.forEach(i=>lines.push('  '+i.time+' '+i.name));}lines.push('');});
+  navigator.clipboard?.writeText(lines.join('\n')).then(()=>{const t=document.getElementById('copy-toast');if(t){t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}});
+}
+document.addEventListener('click',e=>{
+  const done=e.target.closest('[data-done]');
+  if(done){e.stopPropagation();const k=done.dataset.done;DONE[k]=!DONE[k];save();render();return;}
+  const check=e.target.closest('[data-check]');
+  if(check){const k=check.dataset.check;CHECK[k]=!CHECK[k];save();render();return;}
+  const slot=e.target.closest('[data-slot]');
+  if(slot){e.stopPropagation();const id=slot.dataset.slot,i=parseInt(slot.dataset.si);const item=ITEMS.find(x=>x.id===id);if(!item||!SEL[id])return;if(item.multi){const s=new Set(SEL[id]);s.has(i)?s.delete(i):s.add(i);SEL[id]=[...s].sort();if(!SEL[id].length)delete SEL[id];}else SEL[id]=[i];save();render();return;}
+  const slotAll=e.target.closest('[data-slotall]');
+  if(slotAll){e.stopPropagation();const id=slotAll.dataset.slotall;const item=ITEMS.find(x=>x.id===id);if(!item)return;SEL[id]=SEL[id]&&SEL[id].length===item.slots.length?[]:item.slots.map((_,i)=>i);if(!SEL[id].length)delete SEL[id];save();render();return;}
+  const toggle=e.target.closest('[data-toggle]');
+  if(toggle){PREV_SEL=JSON.parse(JSON.stringify(SEL));const id=toggle.dataset.toggle;if(SEL[id])delete SEL[id];else{const item=ITEMS.find(x=>x.id===id);if(item){SEL[id]=item.multi?item.slots.map((_,i)=>i):[bestSlot(item)];const day=item.slots[SEL[id][0]]?.day;if(day)flashDay(day);}}save();render();return;}
+  const scenario=e.target.closest('[data-scenario]');
+  if(scenario){const sc=SCENARIOS.find(s=>s.id===scenario.dataset.scenario);if(sc){PREV_SEL=JSON.parse(JSON.stringify(SEL));SEL={...sc.sel};if(sc.id==='sensory-tot')S={...S,sensory:true,napDays:['tue','thu'],bedNap:'19:00',bedNoNap:'17:30'};else if(sc.id==='active-tot')S={...S,sensory:false,napDays:['tue','wed'],bedNap:'19:30',bedNoNap:'18:00'};else S={...S,sensory:false,napDays:[],bedNap:'20:30',bedNoNap:'20:30'};save();render();}return;}
+  const nav=e.target.closest('[data-nav]');
+  if(nav){V=nav.dataset.nav;render();return;}
+  const day=e.target.closest('[data-day]');
+  if(day){AD=day.dataset.day;if(V!=='plan')V='plan';render();return;}
+  const expand=e.target.closest('[data-expand]');
+  if(expand){e.stopPropagation();const k=expand.dataset.expand;EX[k]=!EX[k];render();return;}
+  const napday=e.target.closest('[data-napday]');
+  if(napday){const d=napday.dataset.napday;const nd=[...S.napDays];const i=nd.indexOf(d);if(i>=0)nd.splice(i,1);else nd.push(d);S={...S,napDays:nd};save();render();return;}
+  const catpill=e.target.closest('[data-catpill]');
+  if(catpill){ADD_CAT=catpill.dataset.catpill==='All'?null:catpill.dataset.catpill;render();return;}
+  const action=e.target.closest('[data-action]');
+  if(action){
+    const a=action.dataset.action;
+    if(a==='toggle-settings'){SHOW_S=!SHOW_S;render();}
+    if(a==='toggle-warns'){EX.warns=!EX.warns;render();}
+    if(a==='clear'){PREV_SEL=JSON.parse(JSON.stringify(SEL));SEL={};DONE={};save();render();}
+    if(a==='undo'){if(PREV_SEL){SEL=PREV_SEL;PREV_SEL=null;save();render();}}
+    if(a==='copy')copyPlan();
+    if(a==='sen'){S={...S,sensory:!S.sensory};save();render();}
+    const sm=a.match(/^prep-story-(.+)/);
+    if(sm){EX['story_'+sm[1]]=!EX['story_'+sm[1]];render();}
+    const nm=a.match(/^note-(.+)/);
+    if(nm){EX['note_'+nm[1]]=!EX['note_'+nm[1]];render();}
+  }
+});
+document.addEventListener('change',e=>{const s=e.target.dataset.setting;if(s){S={...S,[s]:e.target.value};save();render();}});
+document.addEventListener('input',e=>{const n=e.target.dataset.note;if(n!==undefined){NOTES[n]=e.target.value;save();}});
+document.addEventListener('focusout',e=>{const n=e.target.dataset.note;if(n!==undefined){render();}});
+
+load();render();
+
+// ═══ PWA: service worker + install prompt ═══
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;showInstallBtn();});
+function showInstallBtn(){
+  if(document.getElementById('install-fab'))return;
+  const b=document.createElement('button');
+  b.id='install-fab';b.textContent='⬇ Install app';
+  b.style.cssText='position:fixed;bottom:88px;right:12px;z-index:300;background:#C8321A;color:#fff;border:none;border-radius:24px;padding:11px 18px;font-size:13px;font-weight:800;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer';
+  b.onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;b.remove();}};
+  document.body.appendChild(b);
+  setTimeout(()=>{if(document.getElementById('install-fab'))b.style.opacity='0.85';},6000);
+}
+window.addEventListener('appinstalled',()=>{const b=document.getElementById('install-fab');if(b)b.remove();});
+
+</script>
+</body>
+</html>
